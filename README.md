@@ -11,6 +11,7 @@ We aim in this project to study a new semantic similarity for two short text doc
 ![math](https://user-images.githubusercontent.com/39261760/71151310-20afdd80-223c-11ea-98cb-73eb07c5701c.png)
 
 Implement the above similarity expression in your python code
+
 4. Test the above similarity on STSS-131 database and report the Pearson correlation with human judgments.
 5. Study another text similarity using both wordnet semantic similarity and string similarity provided in https://github.com/pritishyuvraj/SOC-PMI-Short-Text-Similarity-. Check the behavior of program for some intuitive sentences (very similar sentences, ambiguous and very dissimilar ones)
 6. Report the result of the above similarity on STSS-131 and report the corresponding Pearson correlation with human judgments
