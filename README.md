@@ -8,6 +8,7 @@ We aim in this project to study a new semantic similarity for two short text doc
 
 3.  Now we want to implement a new semantic similarity based measure. The idea is to use some hierarchical reasoning and explore the WordNet Hierarchy. For this purpose, proceed in the following. For each sentence, use the parser tree to identify various part-of-speech of individual token of the sentence. Generate the list of hypernyms H1 and hyponyms H2 of each noun of the sentence. Repeat this process for each verb. Compute the semantic similarity between the two sentences as  
 
+![math](https://user-images.githubusercontent.com/39261760/71151310-20afdd80-223c-11ea-98cb-73eb07c5701c.png)
 
 Implement the above similarity expression in your python code
 4. Test the above similarity on STSS-131 database and report the Pearson correlation with human judgments.
