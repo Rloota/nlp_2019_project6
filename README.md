@@ -1,4 +1,4 @@
-Project 6: Short text similarity
+# Project 6: Short text similarity
 
 We aim in this project to study a new semantic similarity for two short text document
 

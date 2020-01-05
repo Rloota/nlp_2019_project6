@@ -1,12 +1,28 @@
 import nltk
 import numpy
 from nltk.corpus import wordnet as wn
-'''
+
+nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
 nltk.download('maxent_ne_chunker')
 nltk.download('words')
 nltk.download('wordnet')
-'''
+
+"""
+# Synset
+
+Synset is a special kind of a simple interface that is present in NLTK to look up words in WordNet.
+Synset instances are the groupings of synonymous words that express the same concept. 
+Some of the words have only one Synset and some have several. 
+
+Hypernyms: More abstract terms
+Hyponyms: More specific terms. 
+
+Source: https://www.geeksforgeeks.org/nlp-synsets-for-a-word-in-wordnet/
+
+"""
+
+
 
 def similarity(s1, s2):
     """ An attempt to measure similarity of sentences using Wordnet. """
