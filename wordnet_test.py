@@ -18,11 +18,11 @@ class SentencePair:
     standard_deviation: float
 
 
-nltk.download('punkt')
-nltk.download('averaged_perceptron_tagger')
-nltk.download('maxent_ne_chunker')
-nltk.download('words')
-nltk.download('wordnet')
+# nltk.download('punkt')
+# nltk.download('averaged_perceptron_tagger')
+# nltk.download('maxent_ne_chunker')
+# nltk.download('words')
+# nltk.download('wordnet')
 
 
 STSS_131_DATA = "data/STSS-131.csv"
@@ -45,7 +45,7 @@ def readCSV(filename) -> List[SentencePair]:
     """
     Read sample data from CSV file and generate dataobject for each sentence pair.
 
-    :return: List of SentencePairs
+    :rtype: List of SentencePairs
     """
     sentences = []
     with open(filename, newline='') as csvfile:
@@ -54,16 +54,22 @@ def readCSV(filename) -> List[SentencePair]:
             # Skip the first row
             if i == 0:
                 continue
-            # Check that values are in correct range:
-            # According to source:
-            # Semanticsimilarity ratings for STSS-131 (on a scale from 0.00 to 4.00)
+            """
+            Check that values are in correct range:
+            According to source:
+            Semanticsimilarity ratings for STSS-131 (on a scale from 0.00 to 4.00)
+            """
             try:
                 assert float(row[3]) >= 0 and float(row[3]) <= 4
                 assert float(row[4]) >= 0 and float(row[4]) <= 4
+                print(row)
+                assert len(row) == 5
                 sentence_pair = SentencePair(int(row[0]), row[1], row[2], float(row[3]), float(row[4]))
             except ValueError as e:
+                # "Dataset had invalid format"
                 print(e)
-                print(f"Values were: {row[0]} {row[1]} {row[2]} {row[3]} {row[4]}")
+                print(f"Values were: {row[0]} {row[1]} {row[2]} {row[3]} {row[4]}\n")
+                print("Invalid format.")
                 exit(1)
 
             sentences.append(copy(sentence_pair))
@@ -71,23 +77,28 @@ def readCSV(filename) -> List[SentencePair]:
 
 
 
-def similarity(s1, s2):
-    """ An attempt to measure similarity of sentences using Wordnet. """
+def wordNetSimilarity(s1, s2):
+    """ 
+    An attempt to measure similarity of sentences using Wordnet for single sentence pair. 
+    
+    :param s1: First sentence
+    :param s2: Second sentence
+    :rtype: Similarity score of sentences
+    """
 
-    #step 1 tokenize sentences
+    # Step 1, preprosessing: tokenize sentences
+    # Sentences are broken into words, symbols and other potential meaningful elements
     tokens1 = nltk.word_tokenize(s1)
     tokens2 = nltk.word_tokenize(s2)
 
-    #print(tokens1)
-    #print(tokens2)
-
-    #step 2 tag words
+    # Step 2 tag words. NLTK method 'pos_tag' is pretrained.
+    # It was trained with Treebank corpus, and supports Treebank tags
 
     tag1 = nltk.pos_tag(tokens1)
     tag2 = nltk.pos_tag(tokens2)
 
-    #print(tag1)
-    #print(tag2)
+    print(tag1)
+    print(tag2)
     w1=[]
     w2=[]
 
@@ -122,5 +133,5 @@ for s in sentences:
     print(s.SP_id)
 
 # print("Same sentence: %s."%(similarity(s1,s1)))
-# print("s1 similarity to s2: %s. As per STSS-131 should be 0.77"%(similarity(s1,s2)))
+print("s1 similarity to s2: %s. As per STSS-131 should be 0.77"%(wordNetSimilarity(s1,s2)))
 # print("s3 similarity to s4: %s. As per STSS-131 should be 0.69"%(similarity(s3,s4)))
