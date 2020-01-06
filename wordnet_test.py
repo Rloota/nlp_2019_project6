@@ -1,12 +1,31 @@
 import nltk
 import numpy
+import csv
 from nltk.corpus import wordnet as wn
+
+
+from dataclasses import dataclass
+from typing import List
+from copy import copy
+
+
+@dataclass
+class SentencePair:
+    SP_id: int
+    first_sentence: str
+    second_sentence: str
+    human_SS: float
+    standard_deviation: float
+
 
 nltk.download('punkt')
 nltk.download('averaged_perceptron_tagger')
 nltk.download('maxent_ne_chunker')
 nltk.download('words')
 nltk.download('wordnet')
+
+
+STSS_131_DATA = "data/STSS-131.csv"
 
 """
 # Synset
@@ -21,6 +40,34 @@ Hyponyms: More specific terms.
 Source: https://www.geeksforgeeks.org/nlp-synsets-for-a-word-in-wordnet/
 
 """
+
+def readCSV(filename) -> List[SentencePair]:
+    """
+    Read sample data from CSV file and generate dataobject for each sentence pair.
+
+    :return: List of SentencePairs
+    """
+    sentences = []
+    with open(filename, newline='') as csvfile:
+        sample_data = csv.reader(csvfile, delimiter=';', quotechar='"')
+        for i, row in enumerate(sample_data):
+            # Skip the first row
+            if i == 0:
+                continue
+            # Check that values are in correct range:
+            # According to source:
+            # Semanticsimilarity ratings for STSS-131 (on a scale from 0.00 to 4.00)
+            try:
+                assert float(row[3]) >= 0 and float(row[3]) <= 4
+                assert float(row[4]) >= 0 and float(row[4]) <= 4
+                sentence_pair = SentencePair(int(row[0]), row[1], row[2], float(row[3]), float(row[4]))
+            except ValueError as e:
+                print(e)
+                print(f"Values were: {row[0]} {row[1]} {row[2]} {row[3]} {row[4]}")
+                exit(1)
+
+            sentences.append(copy(sentence_pair))
+    return sentences
 
 
 
@@ -70,8 +117,10 @@ s2 = "I really don't know what to eat tonight so I might go out somewhere."
 s3 = "I advise you to treat this matter very seriously as it is vital."
 s4 = "You must take this most seriously, it will affect you."
 
+sentences = readCSV(STSS_131_DATA)
+for s in sentences:
+    print(s.SP_id)
 
-
-print("Same sentence: %s."%(similarity(s1,s1)))
-print("s1 similarity to s2: %s. As per STSS-131 should be 0.77"%(similarity(s1,s2)))
-print("s3 similarity to s4: %s. As per STSS-131 should be 0.69"%(similarity(s3,s4)))
+# print("Same sentence: %s."%(similarity(s1,s1)))
+# print("s1 similarity to s2: %s. As per STSS-131 should be 0.77"%(similarity(s1,s2)))
+# print("s3 similarity to s4: %s. As per STSS-131 should be 0.69"%(similarity(s3,s4)))
