@@ -132,7 +132,6 @@ if __name__ == "__main__":
             sim_values.append(wordNetSimilarity(s.first_sentence, s.second_sentence))
             STSS_values.append(s.standard_deviation)
             n = n+1
-            print('Sentence "%s" similarity to "%s", score: %s, STSS-131 value: %s' %(s.first_sentence, s.second_sentence, wordNetSimilarity(s.first_sentence, s.second_sentence), s.standard_deviation))
-
-    #print("Pearsons Correlation Coefficient: %s" %(stats.pearsonr(sim_values,STSS_values)))
+            print('Sentence "%s" similarity to "%s", score: %s, STSS-131 value: %s' %(s.first_sentence, s.second_sentence, wordNetSimilarity(s.first_sentence, s.second_sentence), s.human_SS))
     print(stats.pearsonr(sim_values,STSS_values))
+    
