@@ -7,7 +7,7 @@ from nltk.corpus import wordnet as wn
 from dataclasses import dataclass
 from typing import List
 from copy import copy
-
+from scipy import stats
 
 @dataclass
 class SentencePair:
@@ -98,59 +98,41 @@ def wordNetSimilarity(s1, s2):
     # Sentences are broken into words, symbols and other potential meaningful elements
     tokens1 = nltk.word_tokenize(s1)
     tokens2 = nltk.word_tokenize(s2)
-    # print(tokens1)
-
-    # Step 2 tag words. NLTK method 'pos_tag' is pretrained.
-    # It was trained with Treebank corpus, and supports Treebank tags
-
-    tag1 = nltk.pos_tag(tokens1)
-    tag2 = nltk.pos_tag(tokens2)
-
-    # print(tag1)
-    # print(tag2)
-    s1_synsets = []
-    s2_synsets = []
-
+    s1_synsets, s2_synsets=[], []
     # Get synsets of each word (looping list of tokens)
+
     for word in tokens1:
         s1_synsets += wn.synsets(word)
     for word in tokens2:
         s2_synsets += wn.synsets(word)
-    print(s1_synsets)
-
-    score, count = 0.0, 0
-    n_score = []
+    score, count, similarity_values = 0.0, 0, []
     for w1synset in s1_synsets:
         for w2synset in s2_synsets:
             path_sim = w1synset.path_similarity(w2synset)
             if path_sim != None:
                 # Make larger scale values for matching range in STSS-131 data set
-                n_score.append(path_sim * 4)
-        score += max(n_score)
-        count += 1
-
+                similarity_values.append(path_sim * 4)
+        try:
+            score += max(similarity_values)
+            count += 1
+        except:
+            return 0
     score /= count
-    return score
+    return score        
 
-
-
-# print("s3 similarity to s4: %s. As per STSS-131 should be 0.69"%(similarity(s3,s4)))
 
 
 if __name__ == "__main__":
-    s1 = "Would you like to go out to drink with me tonight?"
-    s2 = "I really don't know what to eat tonight so I might go out somewhere."
-
-    s3 = "I advise you to treat this matter very seriously as it is vital."
-    s4 = "You must take this most seriously, it will affect you."
-
 
     sentences = readCSV(STSS_131_DATA)
-    # for s in sentences:
-    #     print(f"For sentence {s.SP_id} similarity score is {wordNetSimilarity(s.first_sentence, s.second_sentence)} where it should be {s.human_SS} \n")
+    sim_values, STSS_values = [], []
+    n = 0
+    for s in sentences:
+        if n < 10:
+            sim_values.append(wordNetSimilarity(s.first_sentence, s.second_sentence))
+            STSS_values.append(s.standard_deviation)
+            n = n+1
+            print('Sentence "%s" similarity to "%s", score: %s, STSS-131 value: %s' %(s.first_sentence, s.second_sentence, wordNetSimilarity(s.first_sentence, s.second_sentence), s.standard_deviation))
 
-    # print("Same sentence: %s."%(similarity(s1,s1)))
-    print(
-        "s1 similarity to s2: %s. As per STSS-131 should be 0.77"
-        % (wordNetSimilarity(s1, s2))
-    )
+    #print("Pearsons Correlation Coefficient: %s" %(stats.pearsonr(sim_values,STSS_values)))
+    print(stats.pearsonr(sim_values,STSS_values))
