@@ -98,7 +98,7 @@ def wordNetSimilarity(s1, s2):
     # Sentences are broken into words, symbols and other potential meaningful elements
     tokens1 = nltk.word_tokenize(s1)
     tokens2 = nltk.word_tokenize(s2)
-    print(tokens1)
+    # print(tokens1)
 
     # Step 2 tag words. NLTK method 'pos_tag' is pretrained.
     # It was trained with Treebank corpus, and supports Treebank tags
@@ -106,8 +106,8 @@ def wordNetSimilarity(s1, s2):
     tag1 = nltk.pos_tag(tokens1)
     tag2 = nltk.pos_tag(tokens2)
 
-    print(tag1)
-    print(tag2)
+    # print(tag1)
+    # print(tag2)
     s1_synsets = []
     s2_synsets = []
 
@@ -116,6 +116,7 @@ def wordNetSimilarity(s1, s2):
         s1_synsets += wn.synsets(word)
     for word in tokens2:
         s2_synsets += wn.synsets(word)
+    print(s1_synsets)
 
     score, count = 0.0, 0
     n_score = []
@@ -123,8 +124,8 @@ def wordNetSimilarity(s1, s2):
         for w2synset in s2_synsets:
             path_sim = w1synset.path_similarity(w2synset)
             if path_sim != None:
-                n_score.append(path_sim)
-
+                # Make larger scale values for matching range in STSS-131 data set
+                n_score.append(path_sim * 4)
         score += max(n_score)
         count += 1
 
@@ -143,9 +144,10 @@ if __name__ == "__main__":
     s3 = "I advise you to treat this matter very seriously as it is vital."
     s4 = "You must take this most seriously, it will affect you."
 
+
     sentences = readCSV(STSS_131_DATA)
-    for s in sentences:
-        print(s.SP_id)
+    # for s in sentences:
+    #     print(f"For sentence {s.SP_id} similarity score is {wordNetSimilarity(s.first_sentence, s.second_sentence)} where it should be {s.human_SS} \n")
 
     # print("Same sentence: %s."%(similarity(s1,s1)))
     print(
