@@ -259,6 +259,17 @@ def measureSimilarity(sentence1, sentence2):
     )
     print( res1, res2)
 
+    count = 0
+    score_nouns = 0
+    for synset in s1_nouns.synsets:
+        # Get the similarity value of the most similar word in the other sentence
+        best_score = max([synset.path_similarity(ss) for ss in s2_nouns.synsets])
+ 
+        # Check that the similarity could have been computed
+        if best_score is not None:
+            score += best_score
+            count += 1
+ 
 
 def preprocess(sentence1, sentence2):
     """
