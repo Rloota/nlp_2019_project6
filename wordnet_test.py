@@ -1,41 +1,24 @@
 import numpy
-import csv
 import nltk
 from nltk.corpus import wordnet as wn
 from nltk import word_tokenize, pos_tag
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.stem.snowball import SnowballStemmer
-
-from dataclasses import dataclass
-from typing import List
-from copy import copy
 from scipy import stats
-
 import argparse
 
-@dataclass
-class SentencePair:
-    """
-    Data object for sentence pair, particulary crafter for dataset
-    STSS-131 which is presented in here https://semanticsimilarity.files.wordpress.com/2013/11/trmmucca20131_12.pdf
-    """
-
-    SP_id: int
-    first_sentence: str
-    second_sentence: str
-    human_SS: float
-    standard_deviation: float
-
-
-# nltk.download('punkt')
-# nltk.download('averaged_perceptron_tagger')
-# nltk.download('maxent_ne_chunker')
-# nltk.download('words')
-# nltk.download('wordnet')
-
+from utils import readCSV
 
 STSS_131_DATA = "data/STSS-131.csv"
+
+nltk.download("punkt")
+nltk.download("averaged_perceptron_tagger")
+nltk.download("maxent_ne_chunker")
+nltk.download("words")
+nltk.download("wordnet")
+nltk.download("stopwords")
+
 
 """
 # Synset
@@ -52,68 +35,43 @@ Source: https://www.geeksforgeeks.org/nlp-synsets-for-a-word-in-wordnet/
 """
 
 
-def readCSV(filename) -> List[SentencePair]:
-    """
-    Read sample data from CSV file and generate dataobject for each sentence pair.
-
-    :rtype: List of SentencePairs
-    """
-    sentences = []
-    with open(filename, newline="") as csvfile:
-        sample_data = csv.reader(csvfile, delimiter=";", quotechar='"')
-        for i, row in enumerate(sample_data):
-            # Skip the first row
-            if i == 0:
-                continue
-            """
-            Check that values are in correct range:
-            According to source:
-            Semanticsimilarity ratings for STSS-131 (on a scale from 0.00 to 4.00)
-            """
-            try:
-                assert float(row[3]) >= 0 and float(row[3]) <= 4
-                assert float(row[4]) >= 0 and float(row[4]) <= 4
-                assert len(row) == 5
-                sentence_pair = SentencePair(
-                    int(row[0]), row[1], row[2], float(row[3]), float(row[4])
-                )
-            except ValueError as e:
-                # "Dataset had invalid format"
-                print(e)
-                print(f"Values were: {row[0]} {row[1]} {row[2]} {row[3]} {row[4]}\n")
-                print("Invalid format.")
-                exit(1)
-
-            sentences.append(copy(sentence_pair))
-    return sentences
-
 def penn_to_wn(tag):
     """ Convert between a Penn Treebank tag to a simplified Wordnet tag """
-    if tag.startswith('N'):
-        return 'n'
- 
-    if tag.startswith('V'):
-        return 'v'
- 
-    if tag.startswith('J'):
-        return 'a'
- 
-    if tag.startswith('R'):
-        return 'r'
- 
+    if tag.startswith("N"):
+        return "n"
+
+    if tag.startswith("V"):
+        return "v"
+
+    if tag.startswith("J"):
+        return "a"
+
+    if tag.startswith("R"):
+        return "r"
+
     return None
+
 
 def tagged_to_synset(word, tag):
     wn_tag = penn_to_wn(tag)
     if wn_tag is None:
         return None
- 
+
     try:
         return wn.synsets(word, wn_tag)[0]
     except:
         return None
 
-def wordNetSimilarity(s1, s2, remove_stopwords = False, perform_lemmatization = False, perform_stemming = False, use_wup = False, use_lch = False):
+
+def wordNetSimilarity(
+    s1,
+    s2,
+    remove_stopwords=False,
+    perform_lemmatization=False,
+    perform_stemming=False,
+    use_wup=False,
+    use_lch=False,
+):
     """ 
     An attempt to measure similarity of sentences using Wordnet for single sentence pair. 
     
@@ -138,11 +96,11 @@ def wordNetSimilarity(s1, s2, remove_stopwords = False, perform_lemmatization = 
     # Option to remove stopwords.
     #  A stop word is a commonly used word (such as “the”, “a”, “an”, “in”) that can be ignored when performing language analysis.
     if remove_stopwords == True:
-        stop_words = set(stopwords.words('english'))
+        stop_words = set(stopwords.words("english"))
         filtered_words1 = [w for w in s1_tokens if not w in stop_words]
         filtered_words2 = [w for w in s2_tokens if not w in stop_words]
         s1_tokens = filtered_words1
-        s2_tokens = filtered_words2 
+        s2_tokens = filtered_words2
 
     # Option to perform stemming
     # Stemmers remove morphological affixes from words, leaving only the word stem.
@@ -157,7 +115,7 @@ def wordNetSimilarity(s1, s2, remove_stopwords = False, perform_lemmatization = 
     # Option to perform lemmatization
     # Lemmatization is the process of grouping together the different inflected forms of a word so they can be analysed as a single item.
     if perform_lemmatization == True:
-        lemmatizer=WordNetLemmatizer()
+        lemmatizer = WordNetLemmatizer()
         s1_lemmatized = [lemmatizer.lemmatize(w) for w in s1_tokens]
         s2_lemmatized = [lemmatizer.lemmatize(w) for w in s2_tokens]
         s1_tokens = filtered_words1
@@ -170,21 +128,21 @@ def wordNetSimilarity(s1, s2, remove_stopwords = False, perform_lemmatization = 
     # Get synsets of each word (looping list of tokens)
     s1_synsets = [tagged_to_synset(*tagged_word) for tagged_word in s1_tokens]
     s2_synsets = [tagged_to_synset(*tagged_word) for tagged_word in s2_tokens]
-    #Filter out any possible None values.
+    # Filter out any possible None values.
     s1_synsets = [i for i in s1_synsets if i]
     s2_synsets = [i for i in s2_synsets if i]
 
     final_score = []
 
-    #Algorithm not yet Inverse-Document-Frequency weighted
+    # Algorithm not yet Inverse-Document-Frequency weighted
     for i in range(2):
         score, count, similarity_values = 0.0, 0, []
         for w1synset in s1_synsets:
             for w2synset in s2_synsets:
-                #Possibility to use Wu-Palmer Similarity.
+                # Possibility to use Wu-Palmer Similarity.
                 if use_wup == True:
                     path_sim = w1synset.wup_similarity(w2synset)
-                #Possibility to use Leacock-Chodorow Similarity.
+                # Possibility to use Leacock-Chodorow Similarity.
                 if use_lch == True:
                     path_sim = w1synset.lch_similarity(w2synset)
                 else:
@@ -201,11 +159,12 @@ def wordNetSimilarity(s1, s2, remove_stopwords = False, perform_lemmatization = 
         final_score.append(score)
         s1_synsets, s2_synsets = s2_synsets, s1_synsets
 
-    return (final_score[0] + final_score[1])/2
+    return (final_score[0] + final_score[1]) / 2
+
 
 def STSS_tests():
 
-    '''Some tests for wordNetSimilarity using STSS dataset'''
+    """Some tests for wordNetSimilarity using STSS dataset"""
     import matplotlib.pyplot as plt
 
     sentences = readCSV(STSS_131_DATA)
@@ -215,35 +174,50 @@ def STSS_tests():
         if n < 10:
             sim_values.append(wordNetSimilarity(s.first_sentence, s.second_sentence))
             STSS_values.append(s.standard_deviation)
-            n = n+1
-            print('Sentence "%s" similarity to "%s", score: %s, STSS-131 value: %s' \
-            %(s.first_sentence, s.second_sentence, \
-            wordNetSimilarity(s.first_sentence, s.second_sentence), \
-            s.human_SS))
-    
+            n = n + 1
+            print(
+                'Sentence "%s" similarity to "%s", score: %s, STSS-131 value: %s'
+                % (
+                    s.first_sentence,
+                    s.second_sentence,
+                    wordNetSimilarity(s.first_sentence, s.second_sentence),
+                    s.human_SS,
+                )
+            )
+
     print("******************************************************")
     print("Using path_similarity")
-    print(stats.pearsonr(sim_values,STSS_values))
+    print(stats.pearsonr(sim_values, STSS_values))
 
     sim_values, STSS_values = [], []
     n = 0
     for s in sentences:
         if n < 10:
-            sim_values.append(wordNetSimilarity(s.first_sentence, s.second_sentence, use_wup = True))
+            sim_values.append(
+                wordNetSimilarity(s.first_sentence, s.second_sentence, use_wup=True)
+            )
             STSS_values.append(s.standard_deviation)
-            n = n+1
-            print('Sentence "%s" similarity to "%s", score: %s, STSS-131 value: %s' \
-            %(s.first_sentence, s.second_sentence, \
-            wordNetSimilarity(s.first_sentence, s.second_sentence, use_wup = True), \
-            s.human_SS))
-   
+            n = n + 1
+            print(
+                'Sentence "%s" similarity to "%s", score: %s, STSS-131 value: %s'
+                % (
+                    s.first_sentence,
+                    s.second_sentence,
+                    wordNetSimilarity(
+                        s.first_sentence, s.second_sentence, use_wup=True
+                    ),
+                    s.human_SS,
+                )
+            )
+
     print("******************************************************")
     print("Using wup")
-    p = stats.pearsonr(sim_values,STSS_values)
+    p = stats.pearsonr(sim_values, STSS_values)
 
     plt.plot(sim_values)
     plt.plot(STSS_values)
     plt.show()
+
 
 if __name__ == "__main__":
     STSS_tests()
