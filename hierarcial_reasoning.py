@@ -6,9 +6,9 @@ from nltk.corpus.reader.wordnet import Synset
 from nltk import pos_tag
 import logging
 from utils import readCSV
-
+from typing import List
 from copy import copy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 nltk.download("wordnet")
 nltk.download("stopwords")
@@ -31,13 +31,19 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 
 
+def default_field(obj):
+    return field(default_factory=lambda: obj)
+
+
 @dataclass
 class WordToken:
 
     word: str
     tag: str
     lemma: str
-    synset: Synset
+    synsets: List[Synset]
+    hypernyms: List[Synset] = default_field([])
+    hyponyms: List[Synset] = default_field([])
 
 
 def isPunctuation(token):
@@ -67,59 +73,59 @@ def wordnetPosTag(tag):
     Source for tag_map: https://stackoverflow.com/questions/5364493/lemmatizing-pos-tagged-words-with-nltk
     """
     tag_map = {
-            'CC':None, # coordin. conjunction (and, but, or)  
-            'CD':wn.NOUN, # cardinal number (one, two)             
-            'DT':None, # determiner (a, the)                    
-            'EX':wn.ADV, # existential ‘there’ (there)           
-            'FW':None, # foreign word (mea culpa)             
-            'IN':wn.ADV, # preposition/sub-conj (of, in, by)   
-            'JJ':[wn.ADJ, wn.ADJ_SAT], # adjective (yellow)                  
-            'JJR':[wn.ADJ, wn.ADJ_SAT], # adj., comparative (bigger)          
-            'JJS':[wn.ADJ, wn.ADJ_SAT], # adj., superlative (wildest)           
-            'LS':None, # list item marker (1, 2, One)          
-            'MD':None, # modal (can, should)                    
-            'NN':wn.NOUN, # noun, sing. or mass (llama)          
-            'NNS':wn.NOUN, # noun, plural (llamas)                  
-            'NNP':wn.NOUN, # proper noun, sing. (IBM)              
-            'NNPS':wn.NOUN, # proper noun, plural (Carolinas)
-            'PDT':[wn.ADJ, wn.ADJ_SAT], # predeterminer (all, both)            
-            'POS':None, # possessive ending (’s )               
-            'PRP':None, # personal pronoun (I, you, he)     
-            'PRP$':None, # possessive pronoun (your, one’s)    
-            'RB':wn.ADV, # adverb (quickly, never)            
-            'RBR':wn.ADV, # adverb, comparative (faster)        
-            'RBS':wn.ADV, # adverb, superlative (fastest)     
-            'RP':[wn.ADJ, wn.ADJ_SAT], # particle (up, off)
-            'SYM':None, # symbol (+,%, &)
-            'TO':None, # “to” (to)
-            'UH':None, # interjection (ah, oops)
-            'VB':wn.VERB, # verb base form (eat)
-            'VBD':wn.VERB, # verb past tense (ate)
-            'VBG':wn.VERB, # verb gerund (eating)
-            'VBN':wn.VERB, # verb past participle (eaten)
-            'VBP':wn.VERB, # verb non-3sg pres (eat)
-            'VBZ':wn.VERB, # verb 3sg pres (eats)
-            'WDT':None, # wh-determiner (which, that)
-            'WP':None, # wh-pronoun (what, who)
-            'WP$':None, # possessive (wh- whose)
-            'WRB':None, # wh-adverb (how, where)
-            '$':None, #  dollar sign ($)
-            '#':None, # pound sign (#)
-            '“':None, # left quote (‘ or “)
-            '”':None, # right quote (’ or ”)
-            '(':None, # left parenthesis ([, (, {, <)
-            ')':None, # right parenthesis (], ), }, >)
-            ',':None, # comma (,)
-            '.':None, # sentence-final punc (. ! ?)
-            ':':None # mid-sentence punc (: ; ... – -)
-        }
+        "CC": None,  # coordin. conjunction (and, but, or)
+        "CD": wn.NOUN,  # cardinal number (one, two)
+        "DT": None,  # determiner (a, the)
+        "EX": wn.ADV,  # existential ‘there’ (there)
+        "FW": None,  # foreign word (mea culpa)
+        "IN": wn.ADV,  # preposition/sub-conj (of, in, by)
+        "JJ": [wn.ADJ, wn.ADJ_SAT],  # adjective (yellow)
+        "JJR": [wn.ADJ, wn.ADJ_SAT],  # adj., comparative (bigger)
+        "JJS": [wn.ADJ, wn.ADJ_SAT],  # adj., superlative (wildest)
+        "LS": None,  # list item marker (1, 2, One)
+        "MD": None,  # modal (can, should)
+        "NN": wn.NOUN,  # noun, sing. or mass (llama)
+        "NNS": wn.NOUN,  # noun, plural (llamas)
+        "NNP": wn.NOUN,  # proper noun, sing. (IBM)
+        "NNPS": wn.NOUN,  # proper noun, plural (Carolinas)
+        "PDT": [wn.ADJ, wn.ADJ_SAT],  # predeterminer (all, both)
+        "POS": None,  # possessive ending (’s )
+        "PRP": None,  # personal pronoun (I, you, he)
+        "PRP$": None,  # possessive pronoun (your, one’s)
+        "RB": wn.ADV,  # adverb (quickly, never)
+        "RBR": wn.ADV,  # adverb, comparative (faster)
+        "RBS": wn.ADV,  # adverb, superlative (fastest)
+        "RP": [wn.ADJ, wn.ADJ_SAT],  # particle (up, off)
+        "SYM": None,  # symbol (+,%, &)
+        "TO": None,  # “to” (to)
+        "UH": None,  # interjection (ah, oops)
+        "VB": wn.VERB,  # verb base form (eat)
+        "VBD": wn.VERB,  # verb past tense (ate)
+        "VBG": wn.VERB,  # verb gerund (eating)
+        "VBN": wn.VERB,  # verb past participle (eaten)
+        "VBP": wn.VERB,  # verb non-3sg pres (eat)
+        "VBZ": wn.VERB,  # verb 3sg pres (eats)
+        "WDT": None,  # wh-determiner (which, that)
+        "WP": None,  # wh-pronoun (what, who)
+        "WP$": None,  # possessive (wh- whose)
+        "WRB": None,  # wh-adverb (how, where)
+        "$": None,  #  dollar sign ($)
+        "#": None,  # pound sign (#)
+        "“": None,  # left quote (‘ or “)
+        "”": None,  # right quote (’ or ”)
+        "(": None,  # left parenthesis ([, (, {, <)
+        ")": None,  # right parenthesis (], ), }, >)
+        ",": None,  # comma (,)
+        ".": None,  # sentence-final punc (. ! ?)
+        ":": None,  # mid-sentence punc (: ; ... – -)
+    }
     return tag_map.get(tag)
-
 
 
 def genMappedWords(tokens):
     """
-    Convert each token into object with details. Also maps Treebank tags into WordNet tags.
+    Convert each token into object with details (lemma, tag and synset included). Also maps Treebank tags into WordNet tags.
+
 
     :param tokens: List of tokens with tag data (tuple)
     """
@@ -137,18 +143,104 @@ def genMappedWords(tokens):
                 continue
         wordNetTag = wordnetPosTag(token[1])
         if not wordNetTag:
-            logger.warning(f"No matching tag in WordNet for given Treebank tag '{token[1]}'.")
+            logger.warning(
+                f"No matching tag in WordNet for given Treebank tag '{token[1]}'."
+            )
             continue
         lemma = lemmatizer.lemmatize(token[0], wordNetTag)
         wordlist_enriched.append(
-            WordToken(
-                token[0],
-                wordNetTag,
-                lemma,
-                wn.synsets(token[0]),
-            )
+            WordToken(token[0], wordNetTag, lemma, wn.synsets(token[0]))
         )
     return wordlist_enriched
+
+
+def addHypernymsHyponyms(wordlist: List[WordToken]):
+    """
+    Method for adding list of Hypernyms and Hyponyms for each word in sentence.
+    
+    In this case, we are only interested about nouns and verbs.
+
+    Sentece has been tagged and tokenized already. It is in form of WordToken list object.
+    """
+
+    for i, word in enumerate(wordlist):
+        word.hypernyms = [] # For some reason, need to reset this that old content is not carried for next word
+        word.hyponyms = []
+        if word.tag == wn.NOUN or word.tag == wn.VERB:
+            for synset in word.synsets:
+                word.hypernyms.extend(synset.hypernyms())
+                word.hyponyms.extend(synset.hyponyms())
+
+            logger.debug(f"Added hypernyms and hyponyms for word {word.word}")
+
+    # if word.tag == wn.VERB:
+    #     for synset in word.synsets:
+    #         word.hypernyms.append(synset.hypernyms())
+
+    #     logger.debug(f"Added hypernyms for VERB {word.word}")
+    #     for test in word.hypernyms:
+    #         print(test)
+
+
+def measureSimilarity(sentence1, sentence2):
+    """
+    Method implementing the equation presented in assignment.
+    """
+
+    s1_details, s2_details = preprocess(sentence1, sentence2)
+    s1_verbs = []
+    s2_verbs = []
+    s1_nouns = []
+    s2_nouns = []
+
+    # First, get only tokens tagged as VERB or NOUN
+
+    for word in s1_details:
+        if word.tag == wn.VERB:
+            s1_verbs.append(word)
+        if word.tag == wn.NOUN:
+            s1_nouns.append(word)
+
+    for word in s2_details:
+        if word.tag == wn.VERB:
+            s2_verbs.append(word)
+        if word.tag == wn.NOUN:
+            s2_nouns.append(word)
+
+    # print(s1_verbs)
+    # print(s1_nouns)
+    # Get all hypernyms of each VERB in sentence
+    s1_verb_hypernyms = [hypernym for i in s1_verbs for hypernym in i.hypernyms]
+    s2_verb_hypernyms = [hypernym for i in s2_verbs for hypernym in i.hypernyms]
+    print(len(s1_verb_hypernyms))
+    # Get all hyponyms of each VERB in sentence
+    s1_verb_hyponyms = [hyponyms for i in s1_verbs for hyponyms in i.hyponyms]
+    s2_verb_hyponyms = [hyponyms for i in s2_verbs for hyponyms in i.hyponyms]
+
+    # Intersection of VERB hypernyms between two sentences
+    verbs_hypernyms_intersection = list(set(s1_verb_hypernyms) & set(s2_verb_hypernyms))
+    logger.debug(
+        f"Length of list of verb hypernyms intersection {len(verbs_hypernyms_intersection)}"
+    )
+    # Intersection of VERB hyponyms between two sentences
+    verbs_hyponyms_intersection = list(set(s1_verb_hyponyms) & set(s2_verb_hyponyms))
+    logger.debug(f"Length of list of verb hyponyms intersection {len(verbs_hyponyms_intersection)}")
+    # Get all hypernyms of each NOUN in sentence
+    s1_noun_hypernyms = [hypernym for i in s1_nouns for hypernym in i.hypernyms]
+    s2_noun_hypernyms = [hypernym for i in s2_nouns for hypernym in i.hypernyms]
+    nouns_hypernyms_intersection = list(set(s1_noun_hypernyms) & set(s2_noun_hypernyms))
+    logger.debug(
+        f"Length of list of noun hypernyms intersection {len(nouns_hypernyms_intersection)}"
+    )
+    # Get all hyponyms of each NOUN in sentence
+    s1_noun_hyponyms = [hyponyms for i in s1_nouns for hyponyms in i.hyponyms]
+    s2_noun_hyponyms = [hyponyms for i in s2_nouns for hyponyms in i.hyponyms]
+    nouns_hyponyms_intersection = list(set(s1_noun_hyponyms) & set(s2_noun_hyponyms))
+    logger.debug(
+        f"Length of list of noun hyponyms intersection {len(nouns_hyponyms_intersection)}"
+    )
+    # print(nouns_intersection)
+
 
 def preprocess(sentence1, sentence2):
     """
@@ -167,13 +259,14 @@ def preprocess(sentence1, sentence2):
     logger.debug(f"Tagged tokens of the first sentence: {s1_tagged}")
     logger.debug(f"Tagged tokens of the second sentence: {s2_tagged}")
 
-
     s1_details = genMappedWords(s1_tagged)
     s2_details = genMappedWords(s2_tagged)
-    for i in s1_details:
-        print(i.lemma)
-        print(i.tag)
-        print(i.synset)
+
+    addHypernymsHyponyms(s1_details)
+    addHypernymsHyponyms(s2_details)
+    logger.info("Preprocessing done.")
+
+    return s1_details, s2_details
 
 
 def main():
@@ -181,7 +274,7 @@ def main():
     # List of sentence objects
     sentences = readCSV(STSS_131_DATA)
 
-    preprocess(sentences[0].first_sentence, sentences[0].second_sentence)
+    measureSimilarity(sentences[0].first_sentence, sentences[0].second_sentence)
 
 
 if __name__ == "__main__":
