@@ -164,7 +164,9 @@ def addHypernymsHyponyms(wordlist: List[WordToken]):
     """
 
     for i, word in enumerate(wordlist):
-        word.hypernyms = [] # For some reason, need to reset this that old content is not carried for next word
+        word.hypernyms = (
+            []
+        )  # For some reason, need to reset this that old content is not carried for next word
         word.hyponyms = []
         if word.tag == wn.NOUN or word.tag == wn.VERB:
             for synset in word.synsets:
@@ -212,7 +214,6 @@ def measureSimilarity(sentence1, sentence2):
     # Get all hypernyms of each VERB in sentence
     s1_verb_hypernyms = [hypernym for i in s1_verbs for hypernym in i.hypernyms]
     s2_verb_hypernyms = [hypernym for i in s2_verbs for hypernym in i.hypernyms]
-    print(len(s1_verb_hypernyms))
     # Get all hyponyms of each VERB in sentence
     s1_verb_hyponyms = [hyponyms for i in s1_verbs for hyponyms in i.hyponyms]
     s2_verb_hyponyms = [hyponyms for i in s2_verbs for hyponyms in i.hyponyms]
@@ -224,7 +225,9 @@ def measureSimilarity(sentence1, sentence2):
     )
     # Intersection of VERB hyponyms between two sentences
     verbs_hyponyms_intersection = list(set(s1_verb_hyponyms) & set(s2_verb_hyponyms))
-    logger.debug(f"Length of list of verb hyponyms intersection {len(verbs_hyponyms_intersection)}")
+    logger.debug(
+        f"Length of list of verb hyponyms intersection {len(verbs_hyponyms_intersection)}"
+    )
     # Get all hypernyms of each NOUN in sentence
     s1_noun_hypernyms = [hypernym for i in s1_nouns for hypernym in i.hypernyms]
     s2_noun_hypernyms = [hypernym for i in s2_nouns for hypernym in i.hypernyms]
@@ -239,7 +242,22 @@ def measureSimilarity(sentence1, sentence2):
     logger.debug(
         f"Length of list of noun hyponyms intersection {len(nouns_hyponyms_intersection)}"
     )
-    # print(nouns_intersection)
+    # Make union for all noun hypernyms and all verb hyponyms
+    union_noun_hypernyms = list(set(s1_noun_hypernyms) | set(s2_noun_hypernyms))
+    union_verb_hyponyms = list(set(s1_verb_hyponyms) | set(s2_verb_hyponyms))
+
+    # print(nouns_hypernyms_intersection)
+    # print("\n\n")
+    # print(union_noun_hypernyms)
+    # print(nouns_hypernyms_intersection / union_noun_hypernyms)
+
+    res1 = len(set(nouns_hypernyms_intersection) & set(union_noun_hypernyms)) / float(
+        len(set(nouns_hypernyms_intersection) | set(union_noun_hypernyms))
+    )
+    res2 = len(set(verbs_hyponyms_intersection) & set(union_verb_hyponyms)) / float(
+        len(set(verbs_hyponyms_intersection) | set(union_verb_hyponyms))
+    )
+    print( res1, res2)
 
 
 def preprocess(sentence1, sentence2):
