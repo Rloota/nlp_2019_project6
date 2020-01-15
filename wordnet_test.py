@@ -37,6 +37,11 @@ nltk.download("wordnet")
 nltk.download("stopwords")
 nltk.download('reuters')
 
+#Using fancy sklearn lib machine learning to calculate tf_idf using reuters as corpus
+tf_idf_model = TfidfVectorizer()
+#Fit tf_idf model using reuters corpus
+tf_idf_model.fit([reuters.raw(fileids) for fileids in reuters.fileids()])
+tf_idf = tf_idf_model.transform([reuters.raw()])
 
 """
 # Synset
@@ -62,54 +67,7 @@ def synset_tag(word, tag):
         return None
 
 
-def reuters_tf_idf(word):
-    #Using fancy sklearn lib machine learning to calculate tf_idf using reuters as corpus
-    #stop_words = stopwords.words('english') + list(punctuation)
-    tf_idf = TfidfVectorizer()
-    #Fit tf_idf model using reuters corpus
-    tf_idf.fit([reuters.raw(fileids) for fileids in reuters.fileids()])
-    X = tf_idf.transform([reuters.raw('test/14829')])
-
-    return X[0, tf_idf.vocabulary_[word]]
-
-
-def calculate_tf_idf(word):
-    stop_words = stopwords.words('english') + list(punctuation)
-    
-    def tokenize(text):
-        words = word_tokenize(text)
-        words = [w.lower() for w in words]
-        return [w for w in words if w not in stop_words and not w.isdigit()]
-
-    # build the vocabulary in one pass
-    vocabulary = set()
-    for file_id in reuters.fileids():
-        words = tokenize(reuters.raw(file_id))
-        vocabulary.update(words)
-    
-    vocabulary = list(vocabulary)
-    word_index = {w: idx for idx, w in enumerate(vocabulary)}
-    
-    VOCABULARY_SIZE = len(vocabulary)
-    DOCUMENTS_COUNT = len(reuters.fileids())
-
-    word_idf = defaultdict(lambda: 0)
-    for file_id in reuters.fileids():
-        words = set(tokenize(reuters.raw(file_id)))
-        for word in words:
-            word_idf[word] += 1
-    
-    for word in vocabulary:
-        word_idf[word] = math.log(DOCUMENTS_COUNT / float(1 + word_idf[word]))
-
-    return(word_idf[word])
-
-    
-    
-     
-
-
-def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = False, use_wup = False, use_lch = False):
+def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = False, use_wup = False, use_lch = False, use_idf = False):
     """ 
     An attempt to measure similarity of sentences using Wordnet for single sentence pair. 
     
@@ -121,6 +79,7 @@ def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = 
     :param perform_stemming: Set to True to perform stemmings, default False
     :param use_wup: Set to True to use wup_similarity to measure similarity, default False.
     :param use_lch: Set to True to use lch_similarity to measure similarity, default False.
+    :param use_idf: Set to True to use idf in calculation.
     """
     
     #Mandatory preprosessing: remove punctuation and tokenize sentences.
@@ -173,15 +132,6 @@ def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = 
     final_score = []
 
     #Calculating Inverse-Document-Frequency
-    '''
-    token_dict = []
-    for article in reuters.fileids():
-        token_dict.append(reuters.raw(article))
-    #print(token_dict)
-    mytexts = TextCollection([token_dict])
-    for i in s1_tokens:
-        print(mytexts.tf_idf(i, token_dict))
-    '''
     # Use TF-IDF to determine frequency of each word in our article, relative to the
     # word frequency distributions in corpus of 11k Reuters news articles.
     #tfidf = TfidfVectorizer(tokenizer=self.tokenize_and_stem, stop_words='english', decode_error='ignore')
@@ -193,24 +143,23 @@ def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = 
 
     #Using fancy sklearn lib machine learning to calculate tf_idf using reuters as corpus
     #stop_words = stopwords.words('english') + list(punctuation)
-    
-    tf_idf = TfidfVectorizer()
-    #Fit tf_idf model using reuters corpus
-    tf_idf.fit([reuters.raw(fileids) for fileids in reuters.fileids()])
+    s1_idfs, s2_idfs = [], []
+    for word in s1_tokens:
+        try:
+            s1_idfs.append(tf_idf[0, tf_idf_model.vocabulary_[word[0]]])
+        except:
+            #print("KeyError %s"%(word[0]))
+            pass
 
-    vocabulary = set()
-    for file_id in reuters.fileids():
-        words = tokenize(reuters.raw(file_id))
-        vocabulary.update(words)
-
-    X = tf_idf.transform(reuters.raw('test/14829'))
-    print(X[0, tf_idf.vocabulary_["would"]])
-    print(X[0, tf_idf.vocabulary_["the"]])
-    print(X[0, tf_idf.vocabulary_["to"]])
-    
+    for word in s2_tokens:
+        try:
+            s2_idfs.append(tf_idf[0, tf_idf_model.vocabulary_[word[0]]])
+        except:
+            #print("KeyError %s"%(word[0]))
+            pass
 
     for i in range(2):
-        score, count, similarity_values, tf_idf_values = 0.0, 0, [], []
+        score, count, similarity_values = 0.0, 0, []
         for w1synset in s1_synsets:
             for w2synset in s2_synsets:
                 #Possibility to use Wu-Palmer Similarity.
@@ -220,8 +169,7 @@ def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = 
                 if use_lch == True:
                     path_sim = w1synset.lch_similarity(w2synset)
                 else:
-                    path_sim = w1synset.path_similarity(w2synset)
-                    
+                    path_sim = w1synset.path_similarity(w2synset)  
                 if path_sim != None:
                     # Make larger scale values for matching range in STSS-131 data set
                     similarity_values.append(path_sim * 4)
@@ -232,7 +180,10 @@ def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = 
                 return 0
 
         score /= count
-        final_score.append(score)
+        if use_idf == True:
+            final_score.append((score * sum(s1_idfs)) / sum(s2_idfs))
+        else:
+            final_score.append(score)
         s1_synsets, s2_synsets = s2_synsets, s1_synsets
 
     return (final_score[0] + final_score[1])/2
@@ -264,8 +215,7 @@ def STSS_tests():
     print("Using path_similarity")
     print(stats.pearsonr(sim_values,STSS_values))
     print(stats.pearsonr(STSS_values, STSS_values))
-    plt.scatter(sim_values, STSS_values)
-    plt.show()
+
     '''
     plt.plot(sim_values)
     plt.plot(STSS_values)
@@ -305,11 +255,17 @@ def STSS_tests():
     p = stats.pearsonr(sim_values,STSS_values)
     print(p)
 
-    s1 = "This city is awful these days"
-    s2 = "The city can improve better if better management is held"
 
+    sim_values, STSS_values = [], []
+    n = 0
+    for s in sentences:
+        sim_values.append(wordNetSimilarity(s.first_sentence, s.second_sentence, perform_stemming = True, use_idf=True))
+        STSS_values.append(s.human_SS)
 
+    print("******************************************************")
+    print("Preprocessing: Stemming, use tf_idf")
+    p = stats.pearsonr(sim_values,STSS_values)
+    print(p)      
     
 if __name__ == "__main__":
     STSS_tests()
-    #print(calculate_tf_idf("make"))
