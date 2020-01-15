@@ -10,6 +10,9 @@ from typing import List
 from copy import copy
 from dataclasses import dataclass, field
 
+
+nltk.download('averaged_perceptron_tagger')
+nltk.download('punkt')
 nltk.download("wordnet")
 nltk.download("stopwords")
 
@@ -20,7 +23,7 @@ STSS_131_DATA = "data/STSS-131.csv"
 
 # Logging
 
-LOGGING_LEVEL = logging.DEBUG
+LOGGING_LEVEL = logging.INFO
 logger = logging.getLogger()
 logger.setLevel(LOGGING_LEVEL)
 # Formatter of log
@@ -79,9 +82,12 @@ def wordnetPosTag(tag):
         "EX": wn.ADV,  # existential ‘there’ (there)
         "FW": None,  # foreign word (mea culpa)
         "IN": wn.ADV,  # preposition/sub-conj (of, in, by)
-        "JJ": [wn.ADJ, wn.ADJ_SAT],  # adjective (yellow)
-        "JJR": [wn.ADJ, wn.ADJ_SAT],  # adj., comparative (bigger)
-        "JJS": [wn.ADJ, wn.ADJ_SAT],  # adj., superlative (wildest)
+        # "JJ": [wn.ADJ, wn.ADJ_SAT],  # adjective (yellow)
+        "JJ": wn.ADJ, 
+        # "JJR": [wn.ADJ, wn.ADJ_SAT],  # adj., comparative (bigger)
+        "JJR": wn.ADJ, 
+        # "JJS": [wn.ADJ, wn.ADJ_SAT],  # adj., superlative (wildest)
+        "JJS": wn.ADJ, 
         "LS": None,  # list item marker (1, 2, One)
         "MD": None,  # modal (can, should)
         "NN": wn.NOUN,  # noun, sing. or mass (llama)
@@ -147,6 +153,7 @@ def genMappedWords(tokens):
                 f"No matching tag in WordNet for given Treebank tag '{token[1]}'."
             )
             continue
+        logger.debug(F"token: {token} tag: {wordNetTag}")
         lemma = lemmatizer.lemmatize(token[0], wordNetTag)
         wordlist_enriched.append(
             WordToken(token[0], wordNetTag, lemma, wn.synsets(token[0]))
@@ -257,19 +264,59 @@ def measureSimilarity(sentence1, sentence2):
     res2 = len(set(verbs_hyponyms_intersection) & set(union_verb_hyponyms)) / float(
         len(set(verbs_hyponyms_intersection) | set(union_verb_hyponyms))
     )
-    print( res1, res2)
+    # print( res1, res2)
 
-    count = 0
-    score_nouns = 0
-    for synset in s1_nouns.synsets:
+
+    nouns_synsets1 = []
+    nouns_synsets2 = []
+    verbs_synsets1 = []
+    verbs_synsets2 = []
+
+    # Combine synsets of each noun in both sentence
+    for noun in s1_nouns:
+        nouns_synsets1 +=  list(set(noun.synsets) - set(nouns_synsets1))
+    for noun in s2_nouns:
+        nouns_synsets2 += list(set(noun.synsets) - set(nouns_synsets2))
+     # Combine synsets of each verb in both sentence
+    for verb in s1_verbs:
+        verbs_synsets1 +=  list(set(verb.synsets) - set(verbs_synsets1))
+    for verb in s2_verbs:
+        verbs_synsets2 +=  list(set(verb.synsets) - set(verbs_synsets2))
+
+
+    score, count, best_score = 0.0, 0, 0
+    for synset in nouns_synsets1:
+        # print(synset)
         # Get the similarity value of the most similar word in the other sentence
-        best_score = max([synset.path_similarity(ss) for ss in s2_nouns.synsets])
+        synset_scores = [synset.path_similarity(ss) for ss in nouns_synsets2 if synset.path_similarity(ss)]
+        if synset_scores:
+            best_score = max(synset_scores)
  
         # Check that the similarity could have been computed
         if best_score is not None:
             score += best_score
             count += 1
+    
+    noun_score = score / count
+
+    score, count, best_score = 0.0, 0, 0
+    for synset in verbs_synsets1:
+        # print(synset)
+        # Get the similarity value of the most similar word in the other sentence
+        synset_scores = [synset.path_similarity(ss) for ss in verbs_synsets2 if synset.path_similarity(ss)]
+        if synset_scores:
+            best_score = max(synset_scores)
  
+        # Check that the similarity could have been computed
+        if best_score is not None:
+            score += best_score
+            count += 1
+
+    verb_score = score / count
+
+    final_score = (noun_score * res1 + verb_score * res2 ) / 2
+    print(f"Final score is {final_score * 4}") 
+    return final_score * 4
 
 def preprocess(sentence1, sentence2):
     """
@@ -302,8 +349,11 @@ def main():
 
     # List of sentence objects
     sentences = readCSV(STSS_131_DATA)
+    scores = []
+    for i in range (0,5):
+        scores.append(measureSimilarity(sentences[i].first_sentence, sentences[i].second_sentence))
 
-    measureSimilarity(sentences[0].first_sentence, sentences[0].second_sentence)
+    print(scores)
 
 
 if __name__ == "__main__":
