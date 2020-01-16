@@ -1,7 +1,7 @@
 
 
 
-#
+#Refactored code from https://github.com/pritishyuvraj/SOC-PMI-Short-Text-Similarity-
 
 import math
 P = "Many consider Maradona as the best player in soccer history"
