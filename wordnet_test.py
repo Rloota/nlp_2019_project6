@@ -196,12 +196,12 @@ def STSS_tests():
     sentences = readCSV(STSS_131_DATA)
     sim_values, STSS_values = [], []
     n = 0
-    
+    print("Using path_similarity")
     for s in sentences:
-
-        sim_values.append(wordNetSimilarity(s.first_sentence, s.second_sentence))
+        val=wordNetSimilarity(s.first_sentence, s.second_sentence)
+        sim_values.append(val)
         STSS_values.append(s.human_SS)
-
+        print("%s;%s;%s;%s;%s;%s"%(s.SP_id,s.first_sentence,s.second_sentence,s.human_SS,s.standard_deviation,round(val, 3)))
         '''
         if n < 10:
             sim_values.append(wordNetSimilarity(s.first_sentence, s.second_sentence))
@@ -212,10 +212,10 @@ def STSS_tests():
             #wordNetSimilarity(s.first_sentence, s.second_sentence), \
             #s.human_SS))
         '''
-    print("******************************************************")
-    print("Using path_similarity")
-    print(stats.pearsonr(sim_values,STSS_values))
-    print(stats.pearsonr(STSS_values, STSS_values))
+    #print("******************************************************")
+    #print(stats.pearsonr(sim_values,STSS_values))
+
+    
 
     '''
     plt.plot(sim_values)
@@ -232,6 +232,8 @@ def STSS_tests():
     print("******************************************************")
     print("Using wup")
     p = stats.pearsonr(sim_values,STSS_values)
+    for i in sim_values:
+        print(round(i, 3))
     print(p)
 
     sim_values, STSS_values = [], []
@@ -243,6 +245,8 @@ def STSS_tests():
     print("******************************************************")
     print("Preprocessing: Stemming")
     p = stats.pearsonr(sim_values,STSS_values)
+    for i in sim_values:
+        print(round(i, 3))
     print(p)  
 
 
@@ -254,19 +258,23 @@ def STSS_tests():
     print("******************************************************")
     print("Preprocessing: lemmatization")
     p = stats.pearsonr(sim_values,STSS_values)
+    for i in sim_values:
+        print(round(i, 3))
     print(p)
 
 
     sim_values, STSS_values = [], []
     n = 0
     for s in sentences:
-        sim_values.append(wordNetSimilarity(s.first_sentence, s.second_sentence, perform_stemming = True, use_idf=True))
+        sim_values.append(wordNetSimilarity(s.first_sentence, s.second_sentence, use_idf=True))
         STSS_values.append(s.human_SS)
 
     print("******************************************************")
-    print("Preprocessing: Stemming, use tf_idf")
+    print("Preprocessing: use tf_idf")
     p = stats.pearsonr(sim_values,STSS_values)
-    print(p)      
+    for i in sim_values:
+        print(round(i, 3))
+    print(p)
     
 if __name__ == "__main__":
     STSS_tests()

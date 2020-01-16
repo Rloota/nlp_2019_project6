@@ -409,12 +409,12 @@ sentences = readCSV(STSS_131_DATA)
 sim_values, STSS_values = [], []
 for s in sentences:
 	#soc_sts(s.first_sentence, s.second_sentence)
-	sim_values.append(soc_sts(s.first_sentence, s.second_sentence))
+	sim_values.append(soc_sts(s.first_sentence, s.second_sentence)*4)
 	STSS_values.append(s.human_SS)
 
 print("******************************************************")
 p = stats.pearsonr(sim_values,STSS_values)
-print(p)
+print("soc_sts correlation with STSS: ", p)
 
 
 '''
