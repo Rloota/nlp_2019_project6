@@ -170,6 +170,7 @@ def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = 
                     path_sim = w1synset.lch_similarity(w2synset)
                 else:
                     path_sim = w1synset.path_similarity(w2synset)  
+
                 if path_sim != None:
                     # Make larger scale values for matching range in STSS-131 data set
                     similarity_values.append(path_sim * 4)
@@ -177,7 +178,7 @@ def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = 
                 score += max(similarity_values)
                 count += 1
             except:
-                return 0
+                pass
 
         score /= count
         if use_idf == True:
