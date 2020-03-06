@@ -66,7 +66,6 @@ def synset_tag(word, tag):
     except:
         return None
 
-
 def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = False, use_wup = False, use_lch = False, use_idf = False):
     """ 
     An attempt to measure similarity of sentences using Wordnet for single sentence pair. 
@@ -81,21 +80,10 @@ def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = 
     :param use_lch: Set to True to use lch_similarity to measure similarity, default False.
     :param use_idf: Set to True to use idf in calculation.
     """
-    
-    #Mandatory preprosessing: remove punctuation and tokenize sentences.
 
-    # Sentences are broken into words, symbols and other potential meaningful elements
-    s1_no_punct = "".join([p.lower() for p in s1 if p not in string.punctuation])
-    s2_no_punct = "".join([p.lower() for p in s2 if p not in string.punctuation])
-
-    s1_tokens = nltk.word_tokenize(s1_no_punct)
-    s2_tokens = nltk.word_tokenize(s2_no_punct)
-
-    stop_words = set(stopwords.words('english'))
-    filtered_words1 = [w for w in s1_tokens if not w in stop_words]
-    filtered_words2 = [w for w in s2_tokens if not w in stop_words]
-    s1_tokens = filtered_words1
-    s2_tokens = filtered_words2
+    #Tokenize sentences.
+    s1_tokens = nltk.word_tokenize(s1)
+    s2_tokens = nltk.word_tokenize(s2)
 
     # Optional Pre-processing
 
@@ -131,16 +119,6 @@ def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = 
 
     final_score = []
 
-    #Calculating Inverse-Document-Frequency
-    # Use TF-IDF to determine frequency of each word in our article, relative to the
-    # word frequency distributions in corpus of 11k Reuters news articles.
-    #tfidf = TfidfVectorizer(tokenizer=self.tokenize_and_stem, stop_words='english', decode_error='ignore')
-    #tdm = self._tfidf.fit_transform(token_dict.values())  # Term-document matrix 
-
-    #mytexts = TextCollection([])
-    #Algorithm not yet Inverse-Document-Frequency weighted
-
-
     #Using fancy sklearn lib machine learning to calculate tf_idf using reuters as corpus
     #stop_words = stopwords.words('english') + list(punctuation)
     s1_idfs, s2_idfs = [], []
@@ -173,7 +151,7 @@ def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = 
 
                 if path_sim != None:
                     # Make larger scale values for matching range in STSS-131 data set
-                    similarity_values.append(path_sim * 4)
+                    similarity_values.append(path_sim)
             try:
                 score += max(similarity_values)
                 count += 1
@@ -201,27 +179,8 @@ def STSS_tests():
         val=wordNetSimilarity(s.first_sentence, s.second_sentence)
         sim_values.append(val)
         STSS_values.append(s.human_SS)
-        print("%s;%s;%s;%s;%s;%s"%(s.SP_id,s.first_sentence,s.second_sentence,s.human_SS,s.standard_deviation,round(val, 3)))
-        '''
-        if n < 10:
-            sim_values.append(wordNetSimilarity(s.first_sentence, s.second_sentence))
-            STSS_values.append(s.human_SS)
-            n = n+1
-            #print('Sentence "%s" similarity to "%s", score: %s, STSS-131 value: %s' \
-            #%(s.first_sentence, s.second_sentence, \
-            #wordNetSimilarity(s.first_sentence, s.second_sentence), \
-            #s.human_SS))
-        '''
-    #print("******************************************************")
-    #print(stats.pearsonr(sim_values,STSS_values))
-
-    
-
-    '''
-    plt.plot(sim_values)
-    plt.plot(STSS_values)
-    plt.show()
-    '''
+    print("******************************************************")
+    print(stats.pearsonr(sim_values,STSS_values))
 
     sim_values, STSS_values = [], []
     n = 0
@@ -232,8 +191,6 @@ def STSS_tests():
     print("******************************************************")
     print("Using wup")
     p = stats.pearsonr(sim_values,STSS_values)
-    for i in sim_values:
-        print(round(i, 3))
     print(p)
 
     sim_values, STSS_values = [], []
@@ -245,10 +202,7 @@ def STSS_tests():
     print("******************************************************")
     print("Preprocessing: Stemming")
     p = stats.pearsonr(sim_values,STSS_values)
-    for i in sim_values:
-        print(round(i, 3))
     print(p)  
-
 
     sim_values, STSS_values = [], []
     for s in sentences:
@@ -258,10 +212,7 @@ def STSS_tests():
     print("******************************************************")
     print("Preprocessing: lemmatization")
     p = stats.pearsonr(sim_values,STSS_values)
-    for i in sim_values:
-        print(round(i, 3))
     print(p)
-
 
     sim_values, STSS_values = [], []
     n = 0
@@ -272,8 +223,6 @@ def STSS_tests():
     print("******************************************************")
     print("Preprocessing: use tf_idf")
     p = stats.pearsonr(sim_values,STSS_values)
-    for i in sim_values:
-        print(round(i, 3))
     print(p)
     
 if __name__ == "__main__":

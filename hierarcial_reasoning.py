@@ -252,11 +252,12 @@ def measureSimilarity(sentence1, sentence2):
     # Make union for all noun hypernyms and all verb hyponyms
     union_noun_hypernyms = list(set(s1_noun_hypernyms) | set(s2_noun_hypernyms))
     union_verb_hyponyms = list(set(s1_verb_hyponyms) | set(s2_verb_hyponyms))
-
-    # print(nouns_hypernyms_intersection)
-    # print("\n\n")
-    # print(union_noun_hypernyms)
-    # print(nouns_hypernyms_intersection / union_noun_hypernyms)
+    print("noun ypernym intersection")
+    print(nouns_hypernyms_intersection)
+    print("\n\n")
+    print("union_noun_hypernyms")
+    print(union_noun_hypernyms)
+    #print(nouns_hypernyms_intersection / union_noun_hypernyms)
 
     res1 = len(set(nouns_hypernyms_intersection) & set(union_noun_hypernyms)) / float(
         len(set(nouns_hypernyms_intersection) | set(union_noun_hypernyms))
@@ -264,7 +265,7 @@ def measureSimilarity(sentence1, sentence2):
     res2 = len(set(verbs_hyponyms_intersection) & set(union_verb_hyponyms)) / float(
         len(set(verbs_hyponyms_intersection) | set(union_verb_hyponyms))
     )
-    # print( res1, res2)
+    print( res1, res2)
 
 
     nouns_synsets1 = []
