@@ -153,7 +153,7 @@ def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = 
                     # Make larger scale values for matching range in STSS-131 data set
                     similarity_values.append(path_sim)
             try:
-                score += max(similarity_values)
+                score += max(similarity_values * 4)
                 count += 1
             except:
                 pass
