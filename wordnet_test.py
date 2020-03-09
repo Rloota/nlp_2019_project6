@@ -15,16 +15,11 @@ from dataclasses import dataclass
 from typing import List
 from copy import copy
 from scipy import stats
-
 import argparse
-
 from utils import readCSV
 from hierarcial_reasoning import wordnetPosTag
-
 from nltk.corpus import reuters
-
 from sklearn.feature_extraction.text import TfidfVectorizer
-
 
 
 STSS_131_DATA = "data/STSS-131.csv"
@@ -35,11 +30,11 @@ nltk.download("maxent_ne_chunker")
 nltk.download("words")
 nltk.download("wordnet")
 nltk.download("stopwords")
-nltk.download('reuters')
+nltk.download("reuters")
 
-#Using fancy sklearn lib machine learning to calculate tf_idf using reuters as corpus
+# Using fancy sklearn lib machine learning to calculate tf_idf using reuters as corpus
 tf_idf_model = TfidfVectorizer()
-#Fit tf_idf model using reuters corpus
+# Fit tf_idf model using reuters corpus
 tf_idf_model.fit([reuters.raw(fileids) for fileids in reuters.fileids()])
 tf_idf = tf_idf_model.transform([reuters.raw()])
 
@@ -57,6 +52,7 @@ Source: https://www.geeksforgeeks.org/nlp-synsets-for-a-word-in-wordnet/
 
 """
 
+
 def synset_tag(word, tag):
     wn_tag = wordnetPosTag(tag)
     if wn_tag is None:
@@ -66,7 +62,16 @@ def synset_tag(word, tag):
     except:
         return None
 
-def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = False, use_wup = False, use_lch = False, use_idf = False):
+
+def wordNetSimilarity(
+    s1,
+    s2,
+    perform_lemmatization=False,
+    perform_stemming=False,
+    use_wup=False,
+    use_lch=False,
+    use_idf=False,
+):
     """ 
     An attempt to measure similarity of sentences using Wordnet for single sentence pair. 
     
@@ -81,7 +86,7 @@ def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = 
     :param use_idf: Set to True to use idf in calculation.
     """
 
-    #Tokenize sentences.
+    # Tokenize sentences.
     s1_tokens = nltk.word_tokenize(s1)
     s2_tokens = nltk.word_tokenize(s2)
 
@@ -100,7 +105,7 @@ def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = 
     # Option to perform lemmatization
     # Lemmatization is the process of grouping together the different inflected forms of a word so they can be analysed as a single item.
     if perform_lemmatization == True:
-        lemmatizer=WordNetLemmatizer()
+        lemmatizer = WordNetLemmatizer()
         s1_lemmatized = [lemmatizer.lemmatize(w) for w in s1_tokens]
         s2_lemmatized = [lemmatizer.lemmatize(w) for w in s2_tokens]
         s1_tokens = s1_lemmatized
@@ -113,41 +118,41 @@ def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = 
     # Get synsets of each word (looping list of tokens)
     s1_synsets = [synset_tag(*tagged_word) for tagged_word in s1_tokens]
     s2_synsets = [synset_tag(*tagged_word) for tagged_word in s2_tokens]
-    #Filter out any possible None values.
+    # Filter out any possible None values.
     s1_synsets = [i for i in s1_synsets if i]
     s2_synsets = [i for i in s2_synsets if i]
 
     final_score = []
 
-    #Using fancy sklearn lib machine learning to calculate tf_idf using reuters as corpus
-    #stop_words = stopwords.words('english') + list(punctuation)
+    # Using fancy sklearn lib machine learning to calculate tf_idf using reuters as corpus
+    # stop_words = stopwords.words('english') + list(punctuation)
     s1_idfs, s2_idfs = [], []
     for word in s1_tokens:
         try:
             s1_idfs.append(tf_idf[0, tf_idf_model.vocabulary_[word[0]]])
         except:
-            #print("KeyError %s"%(word[0]))
+            # print("KeyError %s"%(word[0]))
             pass
 
     for word in s2_tokens:
         try:
             s2_idfs.append(tf_idf[0, tf_idf_model.vocabulary_[word[0]]])
         except:
-            #print("KeyError %s"%(word[0]))
+            # print("KeyError %s"%(word[0]))
             pass
 
     for i in range(2):
         score, count, similarity_values = 0.0, 0, []
         for w1synset in s1_synsets:
             for w2synset in s2_synsets:
-                #Possibility to use Wu-Palmer Similarity.
+                # Possibility to use Wu-Palmer Similarity.
                 if use_wup == True:
                     path_sim = w1synset.wup_similarity(w2synset)
-                #Possibility to use Leacock-Chodorow Similarity.
+                # Possibility to use Leacock-Chodorow Similarity.
                 if use_lch == True:
                     path_sim = w1synset.lch_similarity(w2synset)
                 else:
-                    path_sim = w1synset.path_similarity(w2synset)  
+                    path_sim = w1synset.path_similarity(w2synset)
 
                 if path_sim != None:
                     # Make larger scale values for matching range in STSS-131 data set
@@ -165,65 +170,80 @@ def wordNetSimilarity(s1, s2, perform_lemmatization = False, perform_stemming = 
             final_score.append(score)
         s1_synsets, s2_synsets = s2_synsets, s1_synsets
 
-    return (final_score[0] + final_score[1])/2
+    return (final_score[0] + final_score[1]) / 2
+
 
 def STSS_tests():
 
-    '''Some tests for wordNetSimilarity using STSS dataset'''
+    """Some tests for wordNetSimilarity using STSS dataset"""
     import matplotlib.pyplot as plt
+
     sentences = readCSV(STSS_131_DATA)
     sim_values, STSS_values = [], []
     n = 0
     print("Using path_similarity")
     for s in sentences:
-        val=wordNetSimilarity(s.first_sentence, s.second_sentence)
+        val = wordNetSimilarity(s.first_sentence, s.second_sentence)
         sim_values.append(val)
         STSS_values.append(s.human_SS)
     print("******************************************************")
-    print(stats.pearsonr(sim_values,STSS_values))
+    print(stats.pearsonr(sim_values, STSS_values))
 
     sim_values, STSS_values = [], []
     n = 0
     for s in sentences:
-        sim_values.append(wordNetSimilarity(s.first_sentence, s.second_sentence, use_wup = True))
+        sim_values.append(
+            wordNetSimilarity(s.first_sentence, s.second_sentence, use_wup=True)
+        )
         STSS_values.append(s.human_SS)
-   
+
     print("******************************************************")
     print("Using wup")
-    p = stats.pearsonr(sim_values,STSS_values)
+    p = stats.pearsonr(sim_values, STSS_values)
     print(p)
 
     sim_values, STSS_values = [], []
     n = 0
     for s in sentences:
-        sim_values.append(wordNetSimilarity(s.first_sentence, s.second_sentence, perform_stemming = True))
+        sim_values.append(
+            wordNetSimilarity(
+                s.first_sentence, s.second_sentence, perform_stemming=True
+            )
+        )
         STSS_values.append(s.human_SS)
 
     print("******************************************************")
     print("Preprocessing: Stemming")
-    p = stats.pearsonr(sim_values,STSS_values)
-    print(p)  
+    p = stats.pearsonr(sim_values, STSS_values)
+    print(p)
 
     sim_values, STSS_values = [], []
     for s in sentences:
-        sim_values.append(wordNetSimilarity(s.first_sentence, s.second_sentence, perform_lemmatization = True))
+        sim_values.append(
+            wordNetSimilarity(
+                s.first_sentence, s.second_sentence, perform_lemmatization=True
+            )
+        )
         STSS_values.append(s.human_SS)
 
     print("******************************************************")
     print("Preprocessing: lemmatization")
-    p = stats.pearsonr(sim_values,STSS_values)
+    p = stats.pearsonr(sim_values, STSS_values)
     print(p)
 
     sim_values, STSS_values = [], []
     n = 0
     for s in sentences:
-        sim_values.append(wordNetSimilarity(s.first_sentence, s.second_sentence, use_idf=True))
+        sim_values.append(
+            wordNetSimilarity(s.first_sentence, s.second_sentence, use_idf=True)
+        )
         STSS_values.append(s.human_SS)
 
     print("******************************************************")
     print("Preprocessing: use tf_idf")
-    p = stats.pearsonr(sim_values,STSS_values)
+    p = stats.pearsonr(sim_values, STSS_values)
     print(p)
-    
+
+
 if __name__ == "__main__":
     STSS_tests()
