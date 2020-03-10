@@ -10,7 +10,8 @@ from typing import List
 from copy import copy
 from dataclasses import dataclass, field
 from scipy import stats
-
+import sys
+import csv
 
 nltk.download("averaged_perceptron_tagger")
 nltk.download("punkt")
@@ -18,13 +19,12 @@ nltk.download("wordnet")
 nltk.download("stopwords")
 
 # Filter, enable for removal of stopwords and punctuation
-FILTER = True
 
 STSS_131_DATA = "data/STSS-131.csv"
 
 # Logging
 
-LOGGING_LEVEL = logging.DEBUG
+LOGGING_LEVEL = logging.INFO
 logger = logging.getLogger()
 logger.setLevel(LOGGING_LEVEL)
 # Formatter of log
@@ -129,13 +129,14 @@ def wordnetPosTag(tag):
     return tag_map.get(tag)
 
 
-def genMappedWords(tokens):
+def genMappedWords(tokens, filtering=True):
     """
     Convert each token into object with details (lemma, tag and synset included). Also maps Treebank tags into WordNet tags.
 
 
     :param tokens: List of tokens with tag data (tuple)
     """
+    FILTER = filtering
 
     wordlist_enriched = []
     lemmatizer = WordNetLemmatizer()
@@ -173,7 +174,7 @@ def addHypernymsHyponyms(wordlist: List[WordToken]):
 
     for i, word in enumerate(wordlist):
         word.hypernyms = set()
-         # For some reason, need to reset this that old content is not carried for next word
+        # For some reason, need to reset this that old content is not carried for next word
         word.hyponyms = set()
         if word.tag == wn.NOUN or word.tag == wn.VERB:
             for synset in word.synsets:
@@ -191,12 +192,12 @@ def addHypernymsHyponyms(wordlist: List[WordToken]):
     #         print(test)
 
 
-def measureSimilarity(sentence1, sentence2):
+def measureSimilarity(sentence1, sentence2, filtering=True):
     """
     Method implementing the equation presented in assignment.
     """
 
-    s1_details, s2_details = preprocess(sentence1, sentence2)
+    s1_details, s2_details = preprocess(sentence1, sentence2, filtering)
     s1_verbs = []
     s2_verbs = []
     s1_nouns = []
@@ -216,12 +217,22 @@ def measureSimilarity(sentence1, sentence2):
         if word.tag == wn.NOUN:
             s2_nouns.append(word)
 
+    if not s1_verbs:
+        logger.warning(f"First sentence has no single verb. Sentence is: {sentence1}")
+    if not s2_verbs:
+        logger.warning(f"Second sentence has no single verb. Sentence is {sentence2}")
+    if not s1_nouns:
+        logger.warning(f"First sentence has no single noun. Sentence is {sentence1}")
+    if not s2_nouns:
+        logger.warning(f"Second sentence has no single noun. Sentence is {sentence2}")
+
     # print(s1_nouns)
-    # Get all hypernyms of each VERB in sentence
     s1_verb_hypernyms = set()
     s2_verb_hypernyms = set()
     s1_verb_hyponyms = set()
     s2_verb_hyponyms = set()
+    # Get all hyponyms of each VERB in sentence
+    # Get all hypernyms of each VERB in sentence
     for i in s1_verbs:
         s1_verb_hypernyms.update(i.hypernyms)
         s1_verb_hyponyms.update(i.hyponyms)
@@ -229,21 +240,6 @@ def measureSimilarity(sentence1, sentence2):
     for i in s2_verbs:
         s2_verb_hypernyms.update(i.hypernyms)
         s2_verb_hyponyms.update(i.hyponyms)
-
-
-    # (s1_verb_hypernyms.update(i.hypernyms) for i in s1_verbs)
-    # (s2_verb_hypernyms.update(i.hypernyms) for i in s2_verbs)
-    # s1_verb_hypernyms = [hypernym for i in s1_verbs for hypernym in i.hypernyms]
-    # s2_verb_hypernyms = [hypernym for i in s2_verbs for hypernym in i.hypernyms]
-    # Get all hyponyms of each VERB in sentence
-
-    # (s1_verb_hyponyms.update(i.hyponyms) for i in s1_verbs)
-    # (s2_verb_hyponyms.update(i.hyponyms) for i in s2_verbs)
-    # s1_verb_hyponyms = [hyponyms for i in s1_verbs for hyponyms in i.hyponyms]
-    # s2_verb_hyponyms = [hyponyms for i in s2_verbs for hyponyms in i.hyponyms]
-    # print(s1_verb_hypernyms)
-    # print("BREAK\n\n")
-    # print(s2_verb_hypernyms)
 
     # Intersection of VERB hypernyms between two sentences
     verbs_hypernyms_intersection = s1_verb_hypernyms.intersection(s2_verb_hypernyms)
@@ -259,59 +255,54 @@ def measureSimilarity(sentence1, sentence2):
     s1_noun_hypernyms = set()
     s2_noun_hypernyms = set()
     s1_noun_hyponyms = set()
-    s2_verb_hyponyms = set()
+    s2_noun_hyponyms = set()
 
     # Get all hypernyms of each NOUN in sentence
-    s1_noun_hypernyms = [hypernym for i in s1_nouns for hypernym in i.hypernyms]
-    s2_noun_hypernyms = [hypernym for i in s2_nouns for hypernym in i.hypernyms]
-    nouns_hypernyms_intersection = list(set(s1_noun_hypernyms) & set(s2_noun_hypernyms))
+    # Get all hyponyms of each NOUN in sentence
+
+    for i in s1_nouns:
+        s1_noun_hypernyms.update(i.hypernyms)
+        s1_noun_hyponyms.update(i.hyponyms)
+
+    for i in s2_nouns:
+        s2_noun_hypernyms.update(i.hypernyms)
+        s2_noun_hyponyms.update(i.hyponyms)
+
+    nouns_hypernyms_intersection = s1_noun_hypernyms.intersection(s2_noun_hypernyms)
     logger.debug(
         f"Length of list of noun hypernyms intersection {len(nouns_hypernyms_intersection)}"
     )
-    # Get all hyponyms of each NOUN in sentence
-    s1_noun_hyponyms = [hyponyms for i in s1_nouns for hyponyms in i.hyponyms]
-    s2_noun_hyponyms = [hyponyms for i in s2_nouns for hyponyms in i.hyponyms]
-    nouns_hyponyms_intersection = list(set(s1_noun_hyponyms) & set(s2_noun_hyponyms))
+
+    nouns_hyponyms_intersection = s1_noun_hyponyms.intersection(s2_noun_hyponyms)
     logger.debug(
         f"Length of list of noun hyponyms intersection {len(nouns_hyponyms_intersection)}"
     )
     # Make union for all noun hypernyms and all verb hyponyms
-    union_noun_hypernyms = list(set(s1_noun_hypernyms) | set(s2_noun_hypernyms))
-    union_verb_hyponyms = list(set(s1_verb_hyponyms) | set(s2_verb_hyponyms))
-    # print("noun ypernym intersection")
-    # print(nouns_hypernyms_intersection)
-    # print("\n\n")
-    # print("union_noun_hypernyms")
-    # print(union_noun_hypernyms)
-    # print(nouns_hypernyms_intersection / union_noun_hypernyms)
+    union_noun_hypernyms = s1_noun_hypernyms.union(s2_noun_hypernyms)
+    union_verb_hyponyms = s1_verb_hyponyms.union(s2_verb_hyponyms)
 
     try:
-        res1 = len(set(nouns_hypernyms_intersection) & set(union_noun_hypernyms)) / float(
-            len(set(nouns_hypernyms_intersection) | set(union_noun_hypernyms))
-        )
-        res2 = len(set(verbs_hyponyms_intersection) & set(union_verb_hyponyms)) / float(
-            len(set(verbs_hyponyms_intersection) | set(union_verb_hyponyms))
-        )
+        res1 = len(nouns_hypernyms_intersection) / len(union_noun_hypernyms)
+        res2 = len(verbs_hyponyms_intersection) / len(union_verb_hyponyms)
     except ZeroDivisionError:
-        return "NOT_KNOWN"
+        logger.warning("Division by ZERO")
+        return "DIVISION_BY_ZERO_NO_HYPONYMS"
 
-    # print( res1, res2)
-
-    nouns_synsets1 = []
-    nouns_synsets2 = []
-    verbs_synsets1 = []
-    verbs_synsets2 = []
+    nouns_synsets1 = set()
+    nouns_synsets2 = set()
+    verbs_synsets1 = set()
+    verbs_synsets2 = set()
 
     # Combine synsets of each noun in both sentence
     for noun in s1_nouns:
-        nouns_synsets1 += list(set(noun.synsets) - set(nouns_synsets1))
+        nouns_synsets1.update(set(noun.synsets))
     for noun in s2_nouns:
-        nouns_synsets2 += list(set(noun.synsets) - set(nouns_synsets2))
+        nouns_synsets2.update(set(noun.synsets))
     # Combine synsets of each verb in both sentence
     for verb in s1_verbs:
-        verbs_synsets1 += list(set(verb.synsets) - set(verbs_synsets1))
+        verbs_synsets1.update(set(verb.synsets))
     for verb in s2_verbs:
-        verbs_synsets2 += list(set(verb.synsets) - set(verbs_synsets2))
+        verbs_synsets2.update(set(verb.synsets))
 
     score, count, best_score = 0.0, 0, 0
     for synset in nouns_synsets1:
@@ -324,16 +315,16 @@ def measureSimilarity(sentence1, sentence2):
         ]
         if synset_scores:
             best_score = max(synset_scores)
-
-        # Check that the similarity could have been computed
-        if best_score is not None:
             score += best_score
             count += 1
 
-    if count != 0:
+    if count > 0:
         noun_score = score / count
+        noun_score *= 4
     else:
-        return "NOT_KNOWN"
+        noun_score = 0
+        # sys.exit()
+        # return "NOT_KNOWN"
 
     score, count, best_score = 0.0, 0, 0
     for synset in verbs_synsets1:
@@ -346,23 +337,21 @@ def measureSimilarity(sentence1, sentence2):
         ]
         if synset_scores:
             best_score = max(synset_scores)
-
-        # Check that the similarity could have been computed
-        if best_score is not None:
             score += best_score
             count += 1
 
-    if count != 0:
+    if count > 0:
         verb_score = score / count
-
-        final_score = (noun_score * res1 + verb_score * res2) / 2
-        print(f"Final score is {final_score * 4}")
+        verb_score *= 4
     else:
-        return "NOT_KNOWN"
-    return final_score * 4
+        verb_score = 0
+
+    final_score = (noun_score * res1 + verb_score * res2) / 2
+
+    return final_score
 
 
-def preprocess(sentence1, sentence2):
+def preprocess(sentence1, sentence2, filtering=True):
     """
     Method for tokenizing and tagging sentence pairs
     """
@@ -379,8 +368,8 @@ def preprocess(sentence1, sentence2):
     logger.debug(f"Tagged tokens of the first sentence: {s1_tagged}")
     logger.debug(f"Tagged tokens of the second sentence: {s2_tagged}")
 
-    s1_details = genMappedWords(s1_tagged)
-    s2_details = genMappedWords(s2_tagged)
+    s1_details = genMappedWords(s1_tagged, filtering)
+    s2_details = genMappedWords(s2_tagged, filtering)
 
     addHypernymsHyponyms(s1_details)
     addHypernymsHyponyms(s2_details)
@@ -395,27 +384,65 @@ def main():
     sentences = readCSV(STSS_131_DATA)
     STSS_values = []
     scores = []
-    test = []
+    final_data = []
     init = 66
     for i, j in enumerate(sentences):
-    # for i in range(0,3):
-        result = measureSimilarity(sentences[i].first_sentence, sentences[i].second_sentence)
+        # for i in range(0,3):
+        result = measureSimilarity(
+            sentences[i].first_sentence, sentences[i].second_sentence
+        )
         # scores.append((init, result))
         print(f" CASE {init}")
         # if init == 127:
         #     break
-        if result == "NOT_KNOWN":
+        if isinstance(result, str):
             pass
         else:
-            scores.append(
-            result
-        )
+            scores.append(result)
+            final_data.append((init, result))
             STSS_values.append(j.human_SS)
         init += 1
 
-    print(scores)
+    # print(final_data)
     p = stats.pearsonr(scores, STSS_values)
     print(f"{p}")
+    with open('new_method_no_punc_stopword.csv', 'w') as f:
+        writer = csv.writer(f)
+        for row in final_data:
+            writer.writerow(row)
+
+    STSS_values = []
+    scores = []
+    final_data = []
+    init = 66
+    for i, j in enumerate(sentences):
+        # for i in range(0,3):
+        result = measureSimilarity(
+            sentences[i].first_sentence, sentences[i].second_sentence, filtering=False
+        )
+        # scores.append((init, result))
+        print(f" CASE {init}")
+        # if init == 127:
+        #     break
+        if isinstance(result, str):
+            pass
+        else:
+            scores.append(result)
+            final_data.append((init, result))
+            STSS_values.append(j.human_SS)
+        init += 1
+
+    p = stats.pearsonr(scores, STSS_values)
+    print(f"{p}")
+    with open('new_method_no_preprocessing.csv', 'w') as f:
+        writer = csv.writer(f)
+        for row in final_data:
+            writer.writerow(row)
+
+"""
+Pearson with preprocessing: (0.4277631388197102, 0.0005244450772423713)
+Pearson without preprocessing: (0.3336452222256247, 0.0061874049904368554)
+"""
 
 if __name__ == "__main__":
     main()
