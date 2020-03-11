@@ -405,39 +405,43 @@ def main():
 
     # print(final_data)
     p = stats.pearsonr(scores, STSS_values)
-    print(f"{p}")
+    print(f"Pearsons  Correla-tion  Coefficient  against  Human  Judgement: {p}")
     with open('new_method_no_punc_stopword.csv', 'w') as f:
         writer = csv.writer(f)
         for row in final_data:
             writer.writerow(row)
 
-    STSS_values = []
-    scores = []
-    final_data = []
-    init = 66
-    for i, j in enumerate(sentences):
-        # for i in range(0,3):
-        result = measureSimilarity(
-            sentences[i].first_sentence, sentences[i].second_sentence, filtering=False
-        )
-        # scores.append((init, result))
-        print(f" CASE {init}")
-        # if init == 127:
-        #     break
-        if isinstance(result, str):
-            pass
-        else:
-            scores.append(result)
-            final_data.append((init, result))
-            STSS_values.append(j.human_SS)
-        init += 1
+    # STSS_values = []
+    # scores = []
+    # final_data = []
+    # init = 66
+    # for i, j in enumerate(sentences):
+    #     # for i in range(0,3):
+    #     result = measureSimilarity(
+    #         sentences[i].first_sentence, sentences[i].second_sentence, filtering=False
+    #     )
+    #     # scores.append((init, result))
+    #     print(f" CASE {init}")
+    #     # if init == 127:
+    #     #     break
+    #     if isinstance(result, str):
+    #         pass
+    #     else:
+    #         scores.append(result)
+    #         final_data.append((init, result))
+    #         STSS_values.append(j.human_SS)
+    #     init += 1
 
-    p = stats.pearsonr(scores, STSS_values)
-    print(f"{p}")
-    with open('new_method_no_preprocessing.csv', 'w') as f:
-        writer = csv.writer(f)
-        for row in final_data:
-            writer.writerow(row)
+    # p = stats.pearsonr(scores, STSS_values)
+    # print(f"{p}")
+    # with open('new_method_no_preprocessing.csv', 'w') as f:
+    #     writer = csv.writer(f)
+    #     for row in final_data:
+    #         writer.writerow(row)
+
+    # print(measureSimilarity(
+    #         "We tried to bargain with him but it made no difference, he still didn’t change his mind.", "I tried bargaining with him, but he just wouldn’t listen."
+    #     ))
 
 """
 Pearson with preprocessing: (0.4277631388197102, 0.0005244450772423713)

@@ -16,3 +16,19 @@ Implement the above similarity expression in your python code
 5. Study another text similarity using both wordnet semantic similarity and string similarity provided in https://github.com/pritishyuvraj/SOC-PMI-Short-Text-Similarity-. Check the behavior of program for some intuitive sentences (very similar sentences, ambiguous and very dissimilar ones)
 6. Report the result of the above similarity on STSS-131 and report the corresponding Pearson correlation with human judgments
 7. Suggest an interface of your choice that would allow the user to input a textual query in the form of a pair of sentences and output the similarity score according to the various methods described above.
+
+
+Three different kind of methods can be simply tried out as for STSS-131 dataset:
+
+
+### Corpus-based and Knowledge-based Measures
+
+`python wordnet_test.py`
+
+### Semantic Nets and Corpus Statistics
+
+`python soc_sts.py`
+
+### New semantic similarity based measure
+
+`python hierarcial_reasoning.py`
